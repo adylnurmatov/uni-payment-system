@@ -19,6 +19,7 @@
         <lombok.version>1.18.42</lombok.version>
         <springdoc.openapi.version>2.8.17</springdoc.openapi.version>
         <java-uuid-generator.version>5.2.0</java-uuid-generator.version>
+        <web3j.version>4.14.0</web3j.version>
     </properties>
 
     <modules>

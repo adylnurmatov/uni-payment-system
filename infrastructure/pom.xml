@@ -22,6 +22,7 @@
         <module>treasury-transfer-repository-adapter</module>
         <module>refund-repository-adapter</module>
         <module>fake-blockchain-adapter</module>
+        <module>web3j-blockchain-adapter</module>
         <module>aes-cipher-adapter</module>
         <module>abc-http-adapter</module>
         <module>rest-common</module>

@@ -84,6 +84,11 @@
         </dependency>
         <dependency>
             <groupId>kg.alatoo.payment</groupId>
+            <artifactId>web3j-blockchain-adapter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.alatoo.payment</groupId>
             <artifactId>aes-cipher-adapter</artifactId>
             <version>${project.version}</version>
         </dependency>

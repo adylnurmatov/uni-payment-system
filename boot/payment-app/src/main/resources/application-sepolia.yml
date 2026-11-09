@@ -1,0 +1,13 @@
+# Профиль sepolia: настоящая тестовая сеть Ethereum через web3j.
+# Все значения — из переменных окружения / .env (см. .env.example).
+eth:
+  rpc-url: ${ETH_RPC_URL:}
+  chain-id: ${ETH_CHAIN_ID:11155111}
+  gas-price-multiplier: 1.2
+  explorer-url: https://sepolia.etherscan.io
+  connect-timeout: 10s
+  read-timeout: 30s
+
+# Сколько ETH давать новому мерчанту на комиссии за возвраты (кран выдаёт мало — экономим)
+merchant:
+  initial-funding: ${MERCHANT_INITIAL_FUNDING:0.005}
