@@ -1,0 +1,23 @@
+# Этап 1: только PostgreSQL для локальной разработки.
+#   docker compose up -d postgres
+# Порт на хосте 5433, чтобы не конфликтовать с локально установленным PostgreSQL.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: payments-postgres
+    environment:
+      POSTGRES_DB: payments
+      POSTGRES_USER: ${DB_USER:-payments}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-payments}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-payments} -d payments"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:

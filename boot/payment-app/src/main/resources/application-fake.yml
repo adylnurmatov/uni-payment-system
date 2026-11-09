@@ -1,0 +1,9 @@
+# Профиль fake: блокчейн в памяти, сеть и монеты не нужны.
+admin:
+  # Для локального запуска пароль можно не задавать; на сервере обязательно ADMIN_PASSWORD
+  password: ${ADMIN_PASSWORD:admin}
+
+fake-blockchain:
+  transfer-fee: 0.000021
+  confirmation-delay: 20s
+  treasury-initial-balance: 100

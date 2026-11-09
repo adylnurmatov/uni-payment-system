@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>kg.alatoo</groupId>
+        <artifactId>uni-payment-system</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <groupId>kg.alatoo.payment</groupId>
+    <artifactId>infrastructure</artifactId>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>jpa-common</module>
+        <module>wallet-repository-adapter</module>
+        <module>client-repository-adapter</module>
+        <module>merchant-repository-adapter</module>
+        <module>payment-repository-adapter</module>
+        <module>treasury-transfer-repository-adapter</module>
+        <module>fake-blockchain-adapter</module>
+        <module>aes-cipher-adapter</module>
+        <module>abc-http-adapter</module>
+        <module>rest-common</module>
+        <module>mock-abc-adapter</module>
+        <module>merchant-auth-adapter</module>
+        <module>security-common</module>
+        <module>merchant-payment-api-adapter</module>
+        <module>admin-treasury-api-adapter</module>
+        <module>admin-client-api-adapter</module>
+        <module>admin-merchant-api-adapter</module>
+    </modules>
+</project>

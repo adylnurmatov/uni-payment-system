@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: uni-payment-system
+  profiles:
+    # fake — без сети и без монет (по умолчанию); sepolia — настоящая тестовая сеть
+    default: fake
+  config:
+    # .env читается как properties-файл (из корня проекта или при запуске из boot/payment-app)
+    import: "optional:file:./.env[.properties],optional:file:../../.env[.properties]"
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/payments}
+    username: ${DB_USER:payments}
+    password: ${DB_PASSWORD:payments}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# Мастер-ключ шифрования приватных ключей (base64, 32 байта): openssl rand -base64 32
+wallet:
+  encryption-key: ${WALLET_ENCRYPTION_KEY:}
+
+admin:
+  username: admin
+  password: ${ADMIN_PASSWORD:}
+
+# Внешний «сервис ABC» (по умолчанию — mock внутри этого же приложения)
+abc:
+  base-url: ${ABC_BASE_URL:http://localhost:${server.port}/mock-abc}
+  connect-timeout: 2s
+  read-timeout: 5s
+
+merchant:
+  # Сколько ETH перевести из казны новому мерчанту на комиссии за возвраты
+  initial-funding: 0.01
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

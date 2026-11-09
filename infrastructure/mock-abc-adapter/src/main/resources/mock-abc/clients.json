@@ -1,0 +1,7 @@
+[
+  {"externalId": "ext-1", "fullName": "Aibek Asanov", "email": "aibek@example.com", "country": "KG", "status": "ACTIVE"},
+  {"externalId": "ext-2", "fullName": "Aigerim Toktogulova", "email": "aigerim@example.com", "country": "KG", "status": "ACTIVE"},
+  {"externalId": "ext-3", "fullName": "Daniyar Bekov", "email": "daniyar@example.com", "country": "KZ", "status": "ACTIVE"},
+  {"externalId": "ext-42", "fullName": "Nursultan Omurov", "email": "nursultan@example.com", "country": "KG", "status": "ACTIVE"},
+  {"externalId": "ext-blocked", "fullName": "Blocked Person", "email": "blocked@example.com", "country": "KG", "status": "BLOCKED"}
+]

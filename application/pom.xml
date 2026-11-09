@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>kg.alatoo</groupId>
+        <artifactId>uni-payment-system</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <groupId>kg.alatoo.payment</groupId>
+    <artifactId>application</artifactId>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>application-common</module>
+        <module>application-test-fixtures</module>
+        <module>blockchain-gateway-port</module>
+        <module>private-key-cipher-port</module>
+        <module>client-data-port</module>
+        <module>wallet-repository-port</module>
+        <module>client-repository-port</module>
+        <module>merchant-repository-port</module>
+        <module>payment-repository-port</module>
+        <module>treasury-transfer-repository-port</module>
+        <module>wallet-common</module>
+        <module>treasury-common</module>
+        <module>payment-common</module>
+        <module>init-treasury-use-case</module>
+        <module>get-treasury-use-case</module>
+        <module>create-client-use-case</module>
+        <module>create-client-wallet-use-case</module>
+        <module>fund-client-use-case</module>
+        <module>get-client-balance-use-case</module>
+        <module>create-merchant-use-case</module>
+        <module>authenticate-merchant-use-case</module>
+        <module>create-payment-use-case</module>
+        <module>get-payment-use-case</module>
+        <module>list-payments-use-case</module>
+    </modules>
+</project>
