@@ -1,0 +1,51 @@
+@startuml components
+!include style.iuml
+title Слои и модули (гексагональная архитектура, по образцу s4)
+top to bottom direction
+skinparam rectangleFontStyle bold
+skinparam nodesep 25
+skinparam ranksep 45
+
+rectangle "Входящие адаптеры (infrastructure, driving)" as IN #EEF3FA {
+  rectangle "merchant-payment-api-adapter\nREST /api/v1" as restApi #FFFFFF
+  rectangle "admin-*-api-adapter\nREST /api/admin" as adminApi #FFFFFF
+  rectangle "admin-web-adapter\nThymeleaf /admin" as web #FFFFFF
+  rectangle "confirmation-scheduler-adapter\n@Scheduled" as scheduler #FFFFFF
+}
+
+rectangle "Входные порты (application)\nCreatePaymentPort · RefundPaymentPort · ConfirmTransactionsPort · CreateMerchantPort · ..." as IN_PORTS #FFF8DC
+
+rectangle "Use case + общие сервисы (application)" as APP #EEF3FA {
+  rectangle "use case — один модуль на сценарий\nCreatePaymentUseCase, RefundPaymentUseCase,\nConfirmTransactionsUseCase, ..." as useCases #FFFFFF
+  rectangle "WalletService (блокировка по адресу)\nTreasuryFundingService\nPaymentTransitions" as services #FFFFFF
+}
+
+rectangle "domain\nPayment, Refund, Wallet, статусы,\nPaymentStateMachine, RefundCalculator,\nErrorCode, DomainException\n(без Spring, БД и web3j)" as DOMAIN #E8F5E9
+
+rectangle "Выходные порты (application)\nBlockchainGateway · BlockchainExplorer · ClientDataProvider · PrivateKeyCipher · *RepositoryPort" as OUT_PORTS #FFF8DC
+
+rectangle "Исходящие адаптеры (infrastructure, driven)" as OUT #EEF3FA {
+  rectangle "*-repository-adapter\nJPA + Flyway → PostgreSQL" as jpa #FFFFFF
+  rectangle "web3j-blockchain-adapter\n(профиль sepolia)" as web3j #FFFFFF
+  rectangle "fake-blockchain-adapter\n(профиль fake)" as fake #FFFFFF
+  rectangle "aes-cipher-adapter\nAES-256-GCM" as aes #FFFFFF
+  rectangle "abc-http-adapter\nRestClient → ABC" as abc #FFFFFF
+}
+
+rectangle "boot / payment-app\n@SpringBootApplication: собирает все модули,\nрегистрирует @UseCase / @ApplicationService как бины" as BOOT #F3E5F5
+
+IN -down-> IN_PORTS : вызывают
+IN_PORTS <|.down. APP : реализуют
+APP -right-> DOMAIN : используют
+APP -down-> OUT_PORTS : зависят от\nинтерфейсов
+OUT_PORTS <|.down. OUT : реализуют
+BOOT .up.> IN
+BOOT .up.> OUT
+
+note right of OUT_PORTS
+  Dependency Inversion: стрелки зависимостей
+  направлены внутрь, к application и domain.
+  У application-модулей нет зависимости на
+  infrastructure — это проверяет Maven.
+end note
+@enduml

@@ -1,0 +1,65 @@
+@startuml sequence-payment
+!include style.iuml
+title Оплата: POST /api/v1/payments
+autonumber "<b>0."
+
+actor "Мерчант" as M
+participant "PaymentController" as C
+participant "CreatePaymentUseCase" as UC
+participant "PaymentTransitions\n+ StateMachine" as T
+database "PostgreSQL" as DB
+participant "HttpClientDataProvider" as ABC
+participant "WalletService" as W
+participant "BlockchainGateway\n(web3j)" as BC
+participant "ConfirmationScheduler\n+ ConfirmTransactionsUseCase" as S
+
+M -> C : POST {clientId, amount}\nX-Api-Key, Idempotency-Key
+C -> C : X-Api-Key → мерчант (хэш ключа)
+C -> UC : execute(command)
+UC -> DB : платёж с (merchant, key)?
+alt ключ уже был
+  UC --> C : тот же платёж (или IDEMPOTENCY_CONFLICT,\nесли тело другое)
+else новый запрос
+  UC -> T : create → CREATED
+  T -> DB : payments + history (1 транзакция БД)
+  UC -> DB : клиент по externalId, его кошелёк
+  UC -> T : → CLIENT_VERIFIED
+  UC -> ABC : GET /clients/{externalId}
+  ABC --> UC : ACTIVE / BLOCKED / недоступен
+  UC -> T : → CLIENT_DATA_RECEIVED
+  group withSendLock(адрес клиента): nonce и защита от двойной траты
+    UC -> W : estimateTransferFee, getBalance
+    W -> BC : eth_estimateGas, eth_gasPrice,\neth_getBalance(pending)
+    UC -> UC : balance >= amount + fee ?
+    UC -> T : → BALANCE_CHECKED
+    UC -> W : send(клиент → мерчант)
+    W -> W : расшифровать ключ (AES-GCM)
+    W -> BC : sendTransfer
+    BC -> BC : подписать, nonce = max(узел, локальный)
+    BC --> W : txHash (без ожидания блока)
+    UC -> T : → PENDING (txHash, submittedAt)
+  end
+  UC --> C : Payment
+end
+C --> M : 201 {paymentId, status: PENDING,\ntxHash, explorerUrl}
+
+note over UC, T
+  Ошибка на любом шаге до PENDING → FAILED с кодом
+  (CLIENT_NOT_FOUND, WALLET_NOT_FOUND, CLIENT_BLOCKED,
+  CLIENT_DATA_UNAVAILABLE, INSUFFICIENT_FUNDS, BLOCKCHAIN_ERROR)
+  и ответ { code, message, paymentId, status: FAILED }.
+end note
+
+== Асинхронно: подтверждение (раз в ~15 секунд) ==
+S -> DB : платежи в статусе PENDING
+S -> BC : getTransactionStatus(txHash)\n(eth_getTransactionReceipt)
+alt receipt, status = 1
+  S -> T : → CONFIRMED
+else receipt, status = 0 (reverted)
+  S -> T : → FAILED (BLOCKCHAIN_ERROR)
+else нет receipt дольше 10 минут
+  S -> T : → FAILED (CONFIRMATION_TIMEOUT)
+end
+M -> C : GET /api/v1/payments/{id}
+C --> M : {status: CONFIRMED, ...}
+@enduml

@@ -1,0 +1,25 @@
+' Общий стиль диаграмм
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundCorner 10
+skinparam ArrowColor #444444
+skinparam ArrowFontSize 12
+skinparam ActorBorderColor #444444
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ParticipantBackgroundColor #F2F6FC
+skinparam ParticipantBorderColor #5B7DB1
+skinparam SequenceLifeLineBorderColor #999999
+skinparam SequenceGroupBackgroundColor #F7F7F7
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #C8B560
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassBorderColor #5B7DB1
+skinparam PackageBorderColor #888888
+skinparam StateBackgroundColor #F2F6FC
+skinparam StateBorderColor #5B7DB1
+skinparam ComponentBackgroundColor #F2F6FC
+skinparam ComponentBorderColor #5B7DB1
+skinparam RectangleBorderColor #5B7DB1
+skinparam DatabaseBackgroundColor #F2F6FC
+skinparam DatabaseBorderColor #5B7DB1

@@ -213,6 +213,19 @@ Unit-тесты (state machine, шифрование, оплата, возвра
 и in-memory репозиториях. Интеграционные тесты API и админ-панели поднимают PostgreSQL в Testcontainers
 (нужен запущенный Docker, иначе пропускаются). В реальную сеть тесты не ходят.
 
+## Документация для защиты
+
+- [`docs/requirements.md`](docs/requirements.md) — функциональные и нефункциональные требования, ограничения, допущения, коды ошибок
+- [`docs/architecture.md`](docs/architecture.md) — архитектура, ключевые решения, SOLID с конкретными классами
+- [`docs/diagrams/`](docs/diagrams) — PlantUML: контекст, компоненты, классы, последовательности (оплата, возврат), состояния (платёж, возврат)
+
+Перерисовать диаграммы после правок `.puml`:
+```bash
+cd docs/diagrams
+docker run --rm -v "$PWD:/data" -w /data plantuml/plantuml:1.2025.4 -tpng -charset UTF-8 *.puml
+docker run --rm -v "$PWD:/data" -w /data plantuml/plantuml:1.2025.4 -tsvg -charset UTF-8 *.puml
+```
+
 ## Частые проблемы
 
 | Симптом | Причина / решение |

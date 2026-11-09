@@ -1,0 +1,30 @@
+@startuml context
+!include style.iuml
+title Контекстная диаграмма: Crypto Payment Service
+left to right direction
+
+actor "Мерчант\n(внешний сервис)" as merchant
+actor "Администратор\n(демо, защита)" as admin
+
+rectangle "Crypto Payment Service\n\nSpring Boot · кастодиальные кошельки\nоплата · возвраты · подтверждения" as system #DCE8F7
+
+database "PostgreSQL\n\nкошельки (ключи зашифрованы),\nплатежи, возвраты, история" as db
+rectangle "Сервис ABC\n\nданные клиентов\n(сейчас mock по HTTP)" as abc
+cloud "Ethereum Sepolia\n\nтестовая сеть,\nRPC: Alchemy / Infura" as eth
+rectangle "Кран Google Cloud\n(faucet)" as faucet
+rectangle "Etherscan\n(обозреватель)" as etherscan
+
+merchant --> system : REST /api/v1\nX-Api-Key, Idempotency-Key\nоплата, статус, возврат
+admin --> system : /admin (Thymeleaf)\n/api/admin, Swagger\nBasic / form login
+system --> db : JPA, Flyway
+system --> abc : HTTP GET\n/clients/{externalId}
+system --> eth : JSON-RPC (web3j)\nбаланс, газ, отправка,\nreceipt
+faucet --> eth : тестовый ETH\nна адрес казны
+admin ..> faucet : пополняет казну
+admin ..> etherscan : проверяет транзакции
+
+note bottom of system
+  Клиент мерчанта с сервисом напрямую не работает:
+  его кошелёк создаёт и хранит сервис (кастодиальная модель).
+end note
+@enduml

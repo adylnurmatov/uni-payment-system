@@ -1,0 +1,53 @@
+@startuml sequence-refund
+!include style.iuml
+title Возврат: POST /api/v1/payments/{id}/refunds
+autonumber "<b>0."
+
+actor "Мерчант" as M
+participant "RefundController" as C
+participant "RefundPaymentUseCase" as UC
+database "PostgreSQL" as DB
+participant "WalletService" as W
+participant "BlockchainGateway\n(web3j)" as BC
+participant "ConfirmTransactionsUseCase\n(планировщик)" as S
+participant "PaymentTransitions" as T
+
+M -> C : POST {amount?}\nX-Api-Key, Idempotency-Key
+C -> UC : execute(merchant, paymentId, amount, key)
+UC -> DB : платёж мерчанта (иначе PAYMENT_NOT_FOUND)
+UC -> DB : возврат с (payment, key)?
+alt ключ уже был
+  UC --> C : тот же возврат / IDEMPOTENCY_CONFLICT
+else новый запрос
+  UC -> UC : статус CONFIRMED или PARTIALLY_REFUNDED?\nиначе INVALID_STATE
+  group withSendLock(адрес мерчанта)
+    UC -> DB : все возвраты платежа
+    UC -> UC : remaining = сумма платежа − Σ(возвраты кроме FAILED)\namount = запрошенная или весь remaining\namount > remaining → REFUND_EXCEEDS_PAYMENT
+    UC -> DB : Refund CREATED
+    UC -> W : estimateTransferFee, getBalance(мерчант)
+    UC -> UC : balance >= amount + fee ?\nиначе Refund FAILED (INSUFFICIENT_FUNDS)
+    UC -> W : send(мерчант → клиент)
+    W -> BC : sendTransfer
+    BC --> W : txHash
+    UC -> DB : Refund PENDING (txHash)
+  end
+  UC --> C : Refund
+end
+C --> M : 201 {refundId, amount, status: PENDING, txHash}
+
+note over UC
+  В блокчейне отмены нет: возврат — это новая транзакция
+  с кошелька мерчанта на кошелёк клиента, комиссию платит мерчант.
+end note
+
+== Асинхронно: подтверждение возврата ==
+S -> DB : возвраты в статусе PENDING
+S -> BC : getTransactionStatus(txHash)
+alt SUCCESS
+  S -> DB : Refund COMPLETED
+  S -> S : статус платежа по COMPLETED-возвратам\n(RefundCalculator.statusAfterRefunds)
+  S -> T : → PARTIALLY_REFUNDED или REFUNDED
+else reverted / таймаут
+  S -> DB : Refund FAILED (сумма снова доступна для возврата)
+end
+@enduml

@@ -1,0 +1,22 @@
+@startuml state-refund
+!include style.iuml
+title Статусы возврата (Refund)
+hide empty description
+
+[*] --> CREATED : проверки пройдены:\nстатус платежа, остаток
+CREATED --> PENDING : транзакция мерчант → клиент\nотправлена
+PENDING --> COMPLETED : receipt, status = 1
+CREATED --> FAILED : INSUFFICIENT_FUNDS у мерчанта\nили BLOCKCHAIN_ERROR
+PENDING --> FAILED : reverted или\nCONFIRMATION_TIMEOUT
+COMPLETED --> [*]
+FAILED --> [*]
+
+note right of COMPLETED
+  После COMPLETED платёж переходит
+  в PARTIALLY_REFUNDED или REFUNDED.
+end note
+note right of FAILED
+  FAILED-возврат не занимает лимит:
+  эту сумму можно вернуть снова.
+end note
+@enduml

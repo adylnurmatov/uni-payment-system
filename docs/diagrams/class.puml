@@ -1,0 +1,130 @@
+@startuml class
+!include style.iuml
+title Основные классы и порты
+top to bottom direction
+hide empty members
+skinparam nodesep 30
+skinparam ranksep 50
+
+package "Входящие адаптеры" #EEF3FA {
+  class PaymentController
+  class RefundController
+  class ConfirmationScheduler
+}
+
+package "Входные порты" #FFF8DC {
+  interface CreatePaymentPort {
+    execute(CreatePaymentCommand) : Payment
+  }
+  interface RefundPaymentPort {
+    execute(RefundPaymentCommand) : Refund
+  }
+  interface ConfirmTransactionsPort {
+    execute() : ConfirmationReport
+  }
+}
+
+package "Use case" #EEF3FA {
+  class CreatePaymentUseCase
+  class RefundPaymentUseCase
+  class ConfirmTransactionsUseCase
+}
+
+package "Общие сервисы и домен" #E8F5E9 {
+  class WalletService {
+    createWallet(type)
+    getBalance(wallet)
+    estimateTransferFee(from, to, amount)
+    withSendLock(wallet, action)
+    send(from, to, amount)
+  }
+  class PaymentTransitions {
+    create(payment)
+    moveTo(payment, status, note)
+    fail(payment, code, message)
+  }
+  class PaymentStateMachine {
+    start(payment)
+    transition(payment, to, note)
+    canTransition(from, to)
+  }
+  class RefundCalculator <<utility>> {
+    remaining(payment, refunds)
+    statusAfterRefunds(payment, refunds)
+  }
+}
+
+package "Выходные порты" #FFF8DC {
+  interface BlockchainGateway {
+    generateKeyPair()
+    getBalance(address)
+    estimateTransferFee(from, to, amount)
+    sendTransfer(privateKey, to, amount) : txHash
+    getTransactionStatus(txHash)
+  }
+  interface BlockchainExplorer {
+    transactionUrl(txHash)
+    addressUrl(address)
+  }
+  interface PrivateKeyCipher {
+    encrypt(privateKeyHex)
+    decrypt(encrypted)
+  }
+  interface ClientDataProvider {
+    getClientProfile(externalId)
+  }
+  interface PaymentRepositoryPort {
+    saveWithHistory(payment, change)
+    findByMerchantIdAndIdempotencyKey(...)
+    findByStatus(status)
+  }
+}
+
+package "Исходящие адаптеры" #EEF3FA {
+  class Web3jBlockchainGateway <<sepolia>>
+  class FakeBlockchainGateway <<fake>>
+  class AesGcmPrivateKeyCipher
+  class HttpClientDataProvider
+  class PaymentRepositoryAdapter
+}
+
+PaymentController -down-> CreatePaymentPort
+RefundController -down-> RefundPaymentPort
+ConfirmationScheduler -down-> ConfirmTransactionsPort
+
+CreatePaymentPort <|.down. CreatePaymentUseCase
+RefundPaymentPort <|.down. RefundPaymentUseCase
+ConfirmTransactionsPort <|.down. ConfirmTransactionsUseCase
+
+CreatePaymentUseCase -down-> PaymentTransitions
+CreatePaymentUseCase -down-> WalletService
+CreatePaymentUseCase -down-> ClientDataProvider
+RefundPaymentUseCase -down-> WalletService
+RefundPaymentUseCase -down-> RefundCalculator
+ConfirmTransactionsUseCase -down-> PaymentTransitions
+ConfirmTransactionsUseCase -down-> BlockchainGateway
+
+PaymentTransitions -right-> PaymentStateMachine
+PaymentTransitions -down-> PaymentRepositoryPort
+WalletService -down-> BlockchainGateway
+WalletService -down-> PrivateKeyCipher
+
+BlockchainGateway <|.down. Web3jBlockchainGateway
+BlockchainGateway <|.down. FakeBlockchainGateway
+BlockchainExplorer <|.down. Web3jBlockchainGateway
+BlockchainExplorer <|.down. FakeBlockchainGateway
+PrivateKeyCipher <|.down. AesGcmPrivateKeyCipher
+ClientDataProvider <|.down. HttpClientDataProvider
+PaymentRepositoryPort <|.down. PaymentRepositoryAdapter
+
+note right of BlockchainExplorer
+  ISP: ссылки на etherscan отделены
+  от отправки денег — контроллерам
+  нужен только этот узкий интерфейс.
+end note
+note bottom of FakeBlockchainGateway
+  LSP: Fake и Web3j взаимозаменяемы —
+  use case не знают, какая реализация
+  подключена (профиль fake / sepolia).
+end note
+@enduml

@@ -1,0 +1,32 @@
+@startuml state-payment
+!include style.iuml
+title Статусы платежа (PaymentStateMachine)
+hide empty description
+
+[*] --> CREATED : POST /payments\n(новый Idempotency-Key)
+CREATED --> CLIENT_VERIFIED : клиент и кошелёк найдены
+CLIENT_VERIFIED --> CLIENT_DATA_RECEIVED : ABC вернул ACTIVE
+CLIENT_DATA_RECEIVED --> BALANCE_CHECKED : balance ≥ amount + fee
+BALANCE_CHECKED --> PENDING : транзакция отправлена
+PENDING --> CONFIRMED : receipt, status = 1
+
+CREATED --> FAILED : CLIENT_NOT_FOUND\nWALLET_NOT_FOUND
+CLIENT_VERIFIED --> FAILED : CLIENT_BLOCKED\nCLIENT_DATA_UNAVAILABLE
+CLIENT_DATA_RECEIVED --> FAILED : INSUFFICIENT_FUNDS
+BALANCE_CHECKED --> FAILED : BLOCKCHAIN_ERROR\n(узел отклонил)
+PENDING --> FAILED : reverted (BLOCKCHAIN_ERROR)\nили CONFIRMATION_TIMEOUT
+
+CONFIRMED --> PARTIALLY_REFUNDED : возврат COMPLETED,\nвозвращено < суммы
+CONFIRMED --> REFUNDED : возврат COMPLETED,\nвозвращено = сумме
+PARTIALLY_REFUNDED --> PARTIALLY_REFUNDED : ещё один\nчастичный возврат
+PARTIALLY_REFUNDED --> REFUNDED : возвращено = сумме
+
+FAILED --> [*]
+REFUNDED --> [*]
+
+note right of PENDING
+  Каждый переход пишется в payment_status_history
+  в одной транзакции БД с изменением платежа.
+  Недопустимый переход → INVALID_STATE.
+end note
+@enduml
