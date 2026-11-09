@@ -111,10 +111,10 @@ public class Web3jBlockchainGateway implements BlockchainGateway, BlockchainExpl
         EthSendTransaction response;
         try {
             response = web3j.ethSendRawTransaction(signed).send();
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             // Неизвестно, дошла ли транзакция до узла — сбрасываем локальный nonce, в следующий раз спросим узел
             nextNonces.remove(from);
-            throw new BlockchainException("Ethereum RPC is unavailable: " + e.getMessage(), e);
+            throw new BlockchainException("Ethereum RPC is unavailable (send transaction): " + describe(e), e);
         }
         if (response.hasError()) {
             nextNonces.remove(from);
@@ -175,13 +175,19 @@ public class Web3jBlockchainGateway implements BlockchainGateway, BlockchainExpl
         T response;
         try {
             response = rpcCall.execute();
-        } catch (IOException e) {
-            throw new BlockchainException("Ethereum RPC is unavailable (" + what + "): " + e.getMessage(), e);
+        } catch (IOException | RuntimeException e) {
+            // RuntimeException: например, ClientConnectionException на HTTP 429 (лимит запросов публичного RPC)
+            throw new BlockchainException("Ethereum RPC is unavailable (" + what + "): " + describe(e), e);
         }
         if (response.hasError()) {
             throw new BlockchainException("Ethereum RPC error (" + what + "): " + response.getError().getMessage());
         }
         return response;
+    }
+
+    private static String describe(Exception e) {
+        String message = String.valueOf(e.getMessage());
+        return message.contains("429") ? "RPC rate limit exceeded (HTTP 429), use an Infura/Alchemy key" : message;
     }
 
     @FunctionalInterface

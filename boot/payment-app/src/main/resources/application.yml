@@ -2,8 +2,9 @@ spring:
   application:
     name: uni-payment-system
   profiles:
-    # fake — без сети и без монет (по умолчанию); sepolia — настоящая тестовая сеть
-    default: fake
+    # fake — без сети и без монет (по умолчанию); sepolia — настоящая тестовая сеть.
+    # Берётся из SPRING_PROFILES_ACTIVE (переменная окружения или строка в .env)
+    active: ${SPRING_PROFILES_ACTIVE:fake}
   config:
     # .env читается как properties-файл (из корня проекта или при запуске из boot/payment-app)
     import: "optional:file:./.env[.properties],optional:file:../../.env[.properties]"
