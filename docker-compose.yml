@@ -1,23 +1,44 @@
-# Этап 1: только PostgreSQL для локальной разработки.
-#   docker compose up -d postgres
-# Порт на хосте 5433, чтобы не конфликтовать с локально установленным PostgreSQL.
+# Локальная разработка:  docker compose up -d postgres      (только БД, приложение — из IDE / mvn)
+# Всё в Docker / сервер: docker compose up -d --build        (БД + приложение)
+# Настройки и секреты — в .env (см. .env.example).
 services:
   postgres:
     image: postgres:16-alpine
     container_name: payments-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: payments
       POSTGRES_USER: ${DB_USER:-payments}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-payments}
+    # Только localhost: снаружи (из интернета) база недоступна. Порт 5433 — чтобы не конфликтовать
+    # с локально установленным PostgreSQL.
     ports:
-      - "${POSTGRES_HOST_PORT:-5433}:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
+      # ВАЖНО: здесь хранятся зашифрованные ключи кошельков. `docker compose down -v` удалит их навсегда.
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-payments} -d payments"]
       interval: 5s
       timeout: 3s
       retries: 10
+
+  app:
+    build: .
+    image: uni-payment-system:latest
+    container_name: payments-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      # Внутри docker-сети база доступна по имени сервиса (перекрывает DB_URL из .env)
+      DB_URL: jdbc:postgresql://postgres:5432/payments
+      TZ: Asia/Bishkek
+    ports:
+      # На сервере в .env можно задать APP_PORT=80
+      - "${APP_PORT:-8080}:8080"
 
 volumes:
   postgres-data:

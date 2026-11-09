@@ -1,0 +1,11 @@
+# В образ не попадают секреты, результаты сборки и настройки IDE
+.env
+.env.*
+!.env.example
+**/target/
+.git/
+.idea/
+*.iml
+.vscode/
+backups/
+*.pem
