@@ -64,6 +64,19 @@ public class InMemoryPaymentRepository implements PaymentRepositoryPort {
     }
 
     @Override
+    public PageResult<Payment> findAll(PaymentStatus status, PageQuery pageQuery) {
+        List<Payment> all = payments.values().stream()
+                .filter(p -> status == null || p.status() == status)
+                .sorted(Comparator.comparing(Payment::createdAt).reversed())
+                .toList();
+        List<Payment> page = all.stream()
+                .skip((long) pageQuery.page() * pageQuery.size())
+                .limit(pageQuery.size())
+                .toList();
+        return new PageResult<>(page, pageQuery.page(), pageQuery.size(), all.size());
+    }
+
+    @Override
     public List<Payment> findByStatus(PaymentStatus status) {
         return payments.values().stream().filter(p -> p.status() == status).toList();
     }

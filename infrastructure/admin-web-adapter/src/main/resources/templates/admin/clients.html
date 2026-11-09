@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{admin/fragments :: head('Клиенты')}"></head>
+<body>
+<nav th:replace="~{admin/fragments :: navbar}"></nav>
+<main class="container">
+    <div th:replace="~{admin/fragments :: alerts}"></div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+        <h1 class="h4 mb-0">Клиенты</h1>
+        <form th:action="@{/admin/clients}" method="post" class="d-flex flex-wrap gap-2 align-items-center">
+            <input class="form-control form-control-sm" name="externalId" placeholder="external id, напр. ext-42"
+                   required maxlength="128" style="width: 220px">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="createWallet" value="true" id="createWallet" checked>
+                <label class="form-check-label small" for="createWallet">с кошельком</label>
+            </div>
+            <button class="btn btn-sm btn-primary" type="submit">Создать клиента</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>External ID</th>
+                    <th>Адрес кошелька</th>
+                    <th class="text-end">Баланс, ETH</th>
+                    <th>Действия</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(clients)}">
+                    <td colspan="4" class="text-center text-muted py-4">Клиентов пока нет</td>
+                </tr>
+                <tr th:each="c : ${clients}">
+                    <td class="fw-semibold" th:text="${c.externalId()}">ext-42</td>
+                    <td>
+                        <span th:if="${c.walletAddress() == null}" class="text-muted">нет кошелька</span>
+                        <span th:if="${c.walletAddress() != null}" class="d-flex align-items-center gap-2">
+                            <a th:if="${@ui.isWebLink(@ui.addressUrl(c.walletAddress()))}"
+                               th:href="${@ui.addressUrl(c.walletAddress())}" target="_blank" class="mono"
+                               th:text="${@ui.shortHex(c.walletAddress())}">0x…</a>
+                            <span th:unless="${@ui.isWebLink(@ui.addressUrl(c.walletAddress()))}" class="mono"
+                                  th:text="${@ui.shortHex(c.walletAddress())}">0x…</span>
+                            <button th:replace="~{admin/fragments :: copy(${c.walletAddress()})}"></button>
+                        </span>
+                    </td>
+                    <td class="text-end mono" th:text="${@ui.amount(c.balance())}">0</td>
+                    <td>
+                        <form th:if="${c.walletAddress() == null}" th:action="@{/admin/clients/{id}/wallet(id=${c.id()})}"
+                              method="post">
+                            <button class="btn btn-sm btn-outline-primary" type="submit">Создать кошелёк</button>
+                        </form>
+                        <form th:if="${c.walletAddress() != null}" th:action="@{/admin/clients/{id}/fund(id=${c.id()})}"
+                              method="post" class="d-flex gap-2">
+                            <input class="form-control form-control-sm" name="amount" placeholder="0.01" required
+                                   inputmode="decimal" style="width: 90px">
+                            <button class="btn btn-sm btn-outline-success text-nowrap" type="submit">Пополнить из казны</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="small text-muted mt-2">Баланс берётся из блокчейна (с учётом неподтверждённых транзакций).
+        «—» — кошелька нет или сеть сейчас не ответила.</p>
+</main>
+<div th:replace="~{admin/fragments :: scripts}"></div>
+</body>
+</html>

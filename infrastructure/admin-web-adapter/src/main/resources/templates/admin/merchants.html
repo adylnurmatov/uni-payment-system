@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{admin/fragments :: head('Мерчанты')}"></head>
+<body>
+<nav th:replace="~{admin/fragments :: navbar}"></nav>
+<main class="container">
+    <div th:replace="~{admin/fragments :: alerts}"></div>
+
+    <!-- API-ключ показывается ровно один раз, сразу после создания -->
+    <div th:if="${createdMerchant}" class="alert alert-warning">
+        <h2 class="h6">Мерчант «<span th:text="${createdMerchant.name()}"></span>» создан</h2>
+        <p class="mb-2">API-ключ (заголовок <code>X-Api-Key</code>). <b>Сохраните его сейчас — больше он показан не будет</b>,
+            в базе хранится только хэш.</p>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <code class="fs-6 bg-white px-2 py-1 rounded text-break" th:text="${createdMerchant.apiKey()}">pk_…</code>
+            <button th:replace="~{admin/fragments :: copy(${createdMerchant.apiKey()})}"></button>
+        </div>
+        <p class="small mb-0" th:if="${createdMerchant.fundingTxHash()}">
+            На комиссии переведено <span th:text="${@ui.amount(createdMerchant.initialFunding())}"></span> ETH из казны:
+            <a th:if="${@ui.isWebLink(@ui.txUrl(createdMerchant.fundingTxHash()))}"
+               th:href="${@ui.txUrl(createdMerchant.fundingTxHash())}" target="_blank" class="mono"
+               th:text="${@ui.shortHex(createdMerchant.fundingTxHash())}"></a>
+            <span th:unless="${@ui.isWebLink(@ui.txUrl(createdMerchant.fundingTxHash()))}" class="mono"
+                  th:text="${@ui.shortHex(createdMerchant.fundingTxHash())}"></span>
+        </p>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+        <h1 class="h4 mb-0">Мерчанты</h1>
+        <form th:action="@{/admin/merchants}" method="post" class="d-flex gap-2">
+            <input class="form-control form-control-sm" name="name" placeholder="Название, напр. Coffee Shop"
+                   required maxlength="255" style="width: 240px">
+            <button class="btn btn-sm btn-primary text-nowrap" type="submit">Создать мерчанта</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Название</th>
+                    <th>Адрес кошелька</th>
+                    <th class="text-end">Баланс, ETH</th>
+                    <th>Создан</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(merchants)}">
+                    <td colspan="4" class="text-center text-muted py-4">Мерчантов пока нет</td>
+                </tr>
+                <tr th:each="m : ${merchants}">
+                    <td class="fw-semibold" th:text="${m.name()}">Shop</td>
+                    <td>
+                        <span class="d-flex align-items-center gap-2">
+                            <a th:if="${@ui.isWebLink(@ui.addressUrl(m.walletAddress()))}"
+                               th:href="${@ui.addressUrl(m.walletAddress())}" target="_blank" class="mono"
+                               th:text="${@ui.shortHex(m.walletAddress())}">0x…</a>
+                            <span th:unless="${@ui.isWebLink(@ui.addressUrl(m.walletAddress()))}" class="mono"
+                                  th:text="${@ui.shortHex(m.walletAddress())}">0x…</span>
+                            <button th:replace="~{admin/fragments :: copy(${m.walletAddress()})}"></button>
+                        </span>
+                    </td>
+                    <td class="text-end mono" th:text="${@ui.amount(m.balance())}">0</td>
+                    <td class="small text-muted" th:text="${@ui.time(m.createdAt())}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="small text-muted mt-2">При создании мерчанту переводится немного ETH из казны — на комиссии за возвраты.</p>
+</main>
+<div th:replace="~{admin/fragments :: scripts}"></div>
+</body>
+</html>

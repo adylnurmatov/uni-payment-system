@@ -34,5 +34,6 @@
         <module>admin-client-api-adapter</module>
         <module>admin-merchant-api-adapter</module>
         <module>confirmation-scheduler-adapter</module>
+        <module>admin-web-adapter</module>
     </modules>
 </project>

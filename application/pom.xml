@@ -42,5 +42,9 @@
         <module>refund-payment-use-case</module>
         <module>list-refunds-use-case</module>
         <module>confirm-transactions-use-case</module>
+        <module>list-clients-use-case</module>
+        <module>list-merchants-use-case</module>
+        <module>admin-list-payments-use-case</module>
+        <module>get-payment-details-use-case</module>
     </modules>
 </project>

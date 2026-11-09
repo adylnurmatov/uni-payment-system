@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{admin/fragments :: head('Вход')}"></head>
+<body>
+<div class="container" style="max-width: 400px; margin-top: 12vh;">
+    <div class="card p-4">
+        <h1 class="h4 mb-3 text-center">Crypto Payments · Админ</h1>
+        <div th:if="${param.error}" class="alert alert-danger py-2">Неверный логин или пароль</div>
+        <div th:if="${param.logout}" class="alert alert-secondary py-2">Вы вышли из панели</div>
+        <form th:action="@{/admin/login}" method="post">
+            <div class="mb-3">
+                <label class="form-label" for="username">Логин</label>
+                <input class="form-control" id="username" name="username" value="admin" required autocomplete="username">
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="password">Пароль</label>
+                <input class="form-control" id="password" name="password" type="password" required autofocus
+                       autocomplete="current-password">
+                <div class="form-text">Пароль — значение ADMIN_PASSWORD из .env</div>
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Войти</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

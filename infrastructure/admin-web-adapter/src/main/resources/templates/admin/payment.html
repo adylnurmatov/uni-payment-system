@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{admin/fragments :: head('Платёж')}"></head>
+<body th:with="p=${details.payment()}">
+<nav th:replace="~{admin/fragments :: navbar}"></nav>
+<main class="container">
+    <div th:replace="~{admin/fragments :: alerts}"></div>
+
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+        <a th:href="@{/admin/payments}" class="btn btn-sm btn-outline-secondary">&larr; Платежи</a>
+        <h1 class="h4 mb-0">Платёж</h1>
+        <span class="badge fs-6" th:classappend="${@ui.badge(p.status())}" th:text="${p.status()}">PENDING</span>
+        <span th:if="${autoRefresh}" class="small text-muted">ждём подтверждения в блоке, страница обновляется…</span>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card p-4 mb-4">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">ID</dt>
+                    <dd class="col-sm-8 mono text-break" th:text="${p.id()}"></dd>
+                    <dt class="col-sm-4">Мерчант</dt>
+                    <dd class="col-sm-8" th:text="${details.merchant().name()}"></dd>
+                    <dt class="col-sm-4">Клиент</dt>
+                    <dd class="col-sm-8" th:text="${p.clientExternalId()}"></dd>
+                    <dt class="col-sm-4">Сумма</dt>
+                    <dd class="col-sm-8"><span class="mono" th:text="${@ui.amount(p.amount())}"></span> <span th:text="${p.currency()}"></span></dd>
+                    <dt class="col-sm-4">Транзакция</dt>
+                    <dd class="col-sm-8 text-break">
+                        <a th:if="${@ui.isWebLink(@ui.txUrl(p.txHash()))}" th:href="${@ui.txUrl(p.txHash())}"
+                           target="_blank" class="mono" th:text="${p.txHash()}"></a>
+                        <span th:unless="${@ui.isWebLink(@ui.txUrl(p.txHash()))}" class="mono"
+                              th:text="${p.txHash() ?: '—'}"></span>
+                    </dd>
+                    <dt class="col-sm-4">Idempotency-Key</dt>
+                    <dd class="col-sm-8 mono text-break" th:text="${p.idempotencyKey()}"></dd>
+                    <dt class="col-sm-4">Создан / обновлён</dt>
+                    <dd class="col-sm-8 small" th:text="${@ui.time(p.createdAt())} + ' / ' + ${@ui.time(p.updatedAt())}"></dd>
+                    <th:block th:if="${p.failureCode()}">
+                        <dt class="col-sm-4 text-danger">Ошибка</dt>
+                        <dd class="col-sm-8 text-danger">
+                            <b th:text="${p.failureCode()}"></b>: <span th:text="${p.failureMessage()}"></span>
+                        </dd>
+                    </th:block>
+                </dl>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white"><b>История статусов</b> <span class="small text-muted">(payment_status_history)</span></div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light"><tr><th>Время</th><th>Переход</th><th>Комментарий</th></tr></thead>
+                        <tbody>
+                        <tr th:each="h : ${details.history()}">
+                            <td class="small text-nowrap" th:text="${@ui.time(h.changedAt())}"></td>
+                            <td class="text-nowrap">
+                                <span th:if="${h.fromStatus()}" class="badge" th:classappend="${@ui.badge(h.fromStatus())}"
+                                      th:text="${h.fromStatus()}"></span>
+                                <span th:if="${h.fromStatus()}">&rarr;</span>
+                                <span class="badge" th:classappend="${@ui.badge(h.toStatus())}" th:text="${h.toStatus()}"></span>
+                            </td>
+                            <td class="small text-break" th:text="${h.note()}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card p-4 mb-4">
+                <h2 class="h5">Вернуть деньги клиенту</h2>
+                <p class="small text-muted">Новая транзакция с кошелька мерчанта на кошелёк клиента, комиссию платит мерчант.
+                    Можно вернуть: <b class="mono" th:text="${@ui.amount(details.refundable())}"></b> ETH.</p>
+                <form th:if="${details.canRefund()}" th:action="@{/admin/payments/{id}/refunds(id=${p.id()})}" method="post">
+                    <input type="hidden" name="idempotencyKey" th:value="${refundKey}">
+                    <div class="input-group mb-2">
+                        <input class="form-control" name="amount" inputmode="decimal"
+                               th:placeholder="${@ui.amount(details.refundable())}">
+                        <span class="input-group-text">ETH</span>
+                    </div>
+                    <div class="form-text mb-3">Пусто — вернуть весь остаток.</div>
+                    <button class="btn btn-warning w-100" type="submit"
+                            onclick="this.disabled=true; this.form.submit();">Вернуть</button>
+                </form>
+                <div th:unless="${details.canRefund()}" class="alert alert-secondary small mb-0">
+                    Возврат доступен только для CONFIRMED / PARTIALLY_REFUNDED платежей с ненулевым остатком.
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-white"><b>Возвраты</b></div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light"><tr><th>Время</th><th class="text-end">ETH</th><th>Статус</th><th>Tx</th></tr></thead>
+                        <tbody>
+                        <tr th:if="${#lists.isEmpty(details.refunds())}">
+                            <td colspan="4" class="text-center text-muted py-3">Возвратов нет</td>
+                        </tr>
+                        <tr th:each="r : ${details.refunds()}">
+                            <td class="small text-nowrap" th:text="${@ui.time(r.createdAt())}"></td>
+                            <td class="text-end mono" th:text="${@ui.amount(r.amount())}"></td>
+                            <td>
+                                <span class="badge" th:classappend="${@ui.badge(r.status())}" th:text="${r.status()}"></span>
+                                <div th:if="${r.failureCode()}" class="small text-danger" th:text="${r.failureCode()}"
+                                     th:title="${r.failureMessage()}"></div>
+                            </td>
+                            <td>
+                                <a th:if="${@ui.isWebLink(@ui.txUrl(r.txHash()))}" th:href="${@ui.txUrl(r.txHash())}"
+                                   target="_blank" class="mono" th:text="${@ui.shortHex(r.txHash())}"></a>
+                                <span th:unless="${@ui.isWebLink(@ui.txUrl(r.txHash()))}" class="mono text-muted"
+                                      th:text="${@ui.shortHex(r.txHash())}"></span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<div th:replace="~{admin/fragments :: scripts}"></div>
+<script th:if="${autoRefresh}">setTimeout(function () { location.reload(); }, 10000);</script>
+</body>
+</html>

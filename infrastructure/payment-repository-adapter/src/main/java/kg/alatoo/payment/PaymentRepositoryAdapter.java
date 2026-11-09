@@ -72,6 +72,17 @@ public class PaymentRepositoryAdapter implements PaymentRepositoryPort {
     }
 
     @Override
+    public PageResult<Payment> findAll(PaymentStatus status, PageQuery pageQuery) {
+        PageRequest pageable = PageRequest.of(pageQuery.page(), pageQuery.size(),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<PaymentEntity> page = status == null
+                ? paymentRepository.findAll(pageable)
+                : paymentRepository.findAllByStatus(status.name(), pageable);
+        return new PageResult<>(page.getContent().stream().map(PaymentRepositoryAdapter::toModel).toList(),
+                pageQuery.page(), pageQuery.size(), page.getTotalElements());
+    }
+
+    @Override
     public List<Payment> findByStatus(PaymentStatus status) {
         return paymentRepository.findByStatus(status.name()).stream().map(PaymentRepositoryAdapter::toModel).toList();
     }

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{admin/fragments :: head('Казна')}"></head>
+<body>
+<nav th:replace="~{admin/fragments :: navbar}"></nav>
+<main class="container">
+    <div th:replace="~{admin/fragments :: alerts}"></div>
+
+    <div class="row g-4" th:if="${treasury}">
+        <div class="col-lg-7">
+            <div class="card p-4 h-100">
+                <h1 class="h4 mb-3">Казна</h1>
+                <p class="text-muted mb-1">Адрес</p>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <span class="mono text-break" th:text="${treasury.address()}">0x…</span>
+                    <button th:replace="~{admin/fragments :: copy(${treasury.address()})}"></button>
+                    <a th:if="${@ui.isWebLink(@ui.addressUrl(treasury.address()))}"
+                       th:href="${@ui.addressUrl(treasury.address())}" target="_blank"
+                       class="btn btn-sm btn-outline-primary">Etherscan</a>
+                </div>
+                <p class="text-muted mb-1">Баланс</p>
+                <p class="display-6 mb-0"><span th:text="${@ui.amount(treasury.balance())}">0</span> ETH</p>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card p-4 h-100">
+                <h2 class="h5">Как пополнить казну</h2>
+                <ol class="mb-2">
+                    <li>Скопируйте адрес казны.</li>
+                    <li>Откройте кран
+                        <a href="https://cloud.google.com/application/web3/faucet/ethereum/sepolia" target="_blank">Google
+                            Cloud Sepolia Faucet</a> и войдите в Google-аккаунт.</li>
+                    <li>Выберите сеть <b>Ethereum Sepolia</b>, вставьте адрес и нажмите <i>Receive</i>.</li>
+                    <li>Через 15–30 секунд обновите страницу — баланс вырастет.</li>
+                </ol>
+                <p class="small text-muted mb-0">Кран нужен только казне: клиенты и мерчанты получают тестовый ETH отсюда
+                    (страницы «Клиенты» и «Мерчанты»). Монеты тестовые и ничего не стоят.</p>
+            </div>
+        </div>
+    </div>
+</main>
+<div th:replace="~{admin/fragments :: scripts}"></div>
+</body>
+</html>

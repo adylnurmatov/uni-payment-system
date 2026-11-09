@@ -26,6 +26,9 @@ public interface PaymentRepositoryPort {
     /** Платежи мерчанта, новые сверху. status == null — без фильтра. */
     PageResult<Payment> findByMerchant(UUID merchantId, PaymentStatus status, PageQuery pageQuery);
 
+    /** Все платежи (для админ-панели), новые сверху. status == null — без фильтра. */
+    PageResult<Payment> findAll(PaymentStatus status, PageQuery pageQuery);
+
     List<Payment> findByStatus(PaymentStatus status);
 
     List<PaymentStatusChange> findHistory(UUID paymentId);

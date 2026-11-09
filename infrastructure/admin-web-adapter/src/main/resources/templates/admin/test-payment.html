@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{admin/fragments :: head('Тестовая оплата')}"></head>
+<body>
+<nav th:replace="~{admin/fragments :: navbar}"></nav>
+<main class="container" style="max-width: 640px">
+    <div th:replace="~{admin/fragments :: alerts}"></div>
+
+    <div class="card p-4">
+        <h1 class="h4">Тестовая оплата</h1>
+        <p class="small text-muted">Форма вызывает тот же сценарий оплаты (CreatePaymentUseCase), что и
+            <code>POST /api/v1/payments</code>: проверка клиента и кошелька, запрос в сервис ABC, проверка баланса,
+            отправка транзакции.</p>
+
+        <div th:if="${#lists.isEmpty(merchants)}" class="alert alert-secondary">
+            Сначала создайте мерчанта на странице <a th:href="@{/admin/merchants}">«Мерчанты»</a>.
+        </div>
+
+        <form th:unless="${#lists.isEmpty(merchants)}" th:action="@{/admin/test-payment}" method="post">
+            <input type="hidden" name="idempotencyKey" th:value="${idempotencyKey}">
+            <div class="mb-3">
+                <label class="form-label" for="merchantId">Мерчант (получатель)</label>
+                <select class="form-select" id="merchantId" name="merchantId" required>
+                    <option th:each="m : ${merchants}" th:value="${m.id()}"
+                            th:text="${m.name()} + ' — баланс ' + ${@ui.amount(m.balance())} + ' ETH'"></option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="clientId">Клиент (external id)</label>
+                <input class="form-control" id="clientId" name="clientId" list="clientIds" required
+                       placeholder="ext-42" maxlength="128">
+                <datalist id="clientIds">
+                    <option th:each="c : ${clients}" th:value="${c.externalId()}"
+                            th:text="${c.walletAddress() == null} ? 'нет кошелька' : 'баланс ' + ${@ui.amount(c.balance())} + ' ETH'"></option>
+                </datalist>
+                <div class="form-text">Можно ввести и несуществующего клиента — увидите ошибку CLIENT_NOT_FOUND.
+                    ext-blocked в mock ABC заблокирован.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="amount">Сумма</label>
+                <div class="input-group">
+                    <input class="form-control" id="amount" name="amount" required inputmode="decimal" placeholder="0.001">
+                    <span class="input-group-text">ETH</span>
+                </div>
+            </div>
+            <button class="btn btn-primary w-100" type="submit" onclick="this.disabled=true; this.form.submit();">
+                Оплатить
+            </button>
+        </form>
+    </div>
+</main>
+<div th:replace="~{admin/fragments :: scripts}"></div>
+</body>
+</html>

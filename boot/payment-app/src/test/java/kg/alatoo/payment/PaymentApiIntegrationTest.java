@@ -146,6 +146,35 @@ class PaymentApiIntegrationTest {
     }
 
     @Test
+    void adminPanelPagesRender() {
+        String paymentId = pay(clientId, "0.1", "key-1").getBody().get("paymentId").asText();
+        TestRestTemplate admin = rest.withBasicAuth("admin", "test-admin");
+
+        assertPage(admin, "/admin", "Как пополнить казну");
+        assertPage(admin, "/admin/clients", clientId);
+        assertPage(admin, "/admin/merchants", "Shop");
+        assertPage(admin, "/admin/payments", "PENDING");
+        assertPage(admin, "/admin/payments?status=FAILED", "Платежи");
+        assertPage(admin, "/admin/payments/" + paymentId, "История статусов");
+        assertPage(admin, "/admin/test-payment", "Тестовая оплата");
+        assertPage(rest, "/admin/login", "Войти");
+    }
+
+    @Test
+    void adminPanelRedirectsAnonymousUserToLogin() {
+        // TestRestTemplate сам проходит по redirect, поэтому проверяем, что оказались на странице логина
+        ResponseEntity<String> response = rest.getForEntity("/admin/clients", String.class);
+
+        assertThat(response.getBody()).contains("ADMIN_PASSWORD").doesNotContain("Создать клиента");
+    }
+
+    private static void assertPage(TestRestTemplate client, String url, String expectedText) {
+        ResponseEntity<String> page = client.getForEntity(url, String.class);
+        assertThat(page.getStatusCode()).as(url).isEqualTo(HttpStatus.OK);
+        assertThat(page.getBody()).as(url).contains(expectedText).doesNotContain("Внутренняя ошибка");
+    }
+
+    @Test
     void invalidApiKeyIsUnauthorized() {
         ResponseEntity<JsonNode> response = merchantGet("/api/v1/payments", "wrong");
 

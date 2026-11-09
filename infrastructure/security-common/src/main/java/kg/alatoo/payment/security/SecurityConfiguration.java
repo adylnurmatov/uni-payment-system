@@ -39,10 +39,18 @@ public class SecurityConfiguration {
                 // REST API без cookie-сессий — CSRF ему не нужен; для форм /admin CSRF остаётся включённым
                 .csrf(csrf -> csrf.ignoringRequestMatchers(API_REQUESTS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/admin/login").permitAll()
                         .requestMatchers("/api/admin/**", "/admin/**").hasRole("ADMIN")
                         .anyRequest().permitAll())
                 .httpBasic(Customizer.withDefaults())
-                .formLogin(Customizer.withDefaults())
+                .formLogin(form -> form
+                        .loginPage("/admin/login")
+                        .loginProcessingUrl("/admin/login")
+                        .defaultSuccessUrl("/admin", true)
+                        .failureUrl("/admin/login?error"))
+                .logout(logout -> logout
+                        .logoutUrl("/admin/logout")
+                        .logoutSuccessUrl("/admin/login?logout"))
                 .exceptionHandling(e -> e.defaultAuthenticationEntryPointFor(jsonUnauthorized(objectMapper), API_REQUESTS));
         return http.build();
     }

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{admin/fragments :: head('Ошибка')}"></head>
+<body>
+<nav th:replace="~{admin/fragments :: navbar}"></nav>
+<main class="container">
+    <div class="alert alert-danger text-break" th:text="${errorMessage}">Ошибка</div>
+    <a class="btn btn-outline-secondary" th:href="@{/admin}">На главную</a>
+</main>
+<div th:replace="~{admin/fragments :: scripts}"></div>
+</body>
+</html>

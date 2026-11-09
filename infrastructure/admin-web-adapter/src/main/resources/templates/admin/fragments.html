@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<!-- Общие куски страниц панели: <head>, меню, сообщения, скрипты -->
+
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · Crypto Payments'">Crypto Payments</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <style>
+        body { background: #f5f6f8; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .875em; }
+        .table td, .table th { vertical-align: middle; }
+        .card { border: 0; box-shadow: 0 1px 3px rgba(0, 0, 0, .08); }
+    </style>
+</head>
+
+<nav th:fragment="navbar" class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/admin}">Crypto Payments</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"
+                aria-label="Меню"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" th:classappend="${active == 'treasury'} ? 'active'"
+                                        th:href="@{/admin}">Казна</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${active == 'clients'} ? 'active'"
+                                        th:href="@{/admin/clients}">Клиенты</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${active == 'merchants'} ? 'active'"
+                                        th:href="@{/admin/merchants}">Мерчанты</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${active == 'payments'} ? 'active'"
+                                        th:href="@{/admin/payments}">Платежи</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${active == 'test-payment'} ? 'active'"
+                                        th:href="@{/admin/test-payment}">Тестовая оплата</a></li>
+            </ul>
+            <a class="btn btn-sm btn-outline-light me-2" href="/swagger-ui.html" target="_blank">Swagger</a>
+            <form th:action="@{/admin/logout}" method="post" class="d-inline">
+                <button class="btn btn-sm btn-outline-secondary" type="submit">Выйти</button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+<div th:fragment="alerts">
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show text-break" role="alert">
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show text-break" role="alert">
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+    </div>
+</div>
+
+<!-- Кнопка «скопировать»: data-copy содержит текст -->
+<button th:fragment="copy(value)" type="button" class="btn btn-sm btn-outline-secondary copy-btn"
+        th:attr="data-copy=${value}" title="Скопировать">Копировать</button>
+
+<div th:fragment="scripts">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelectorAll('.copy-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                navigator.clipboard.writeText(btn.dataset.copy).then(function () {
+                    var old = btn.textContent;
+                    btn.textContent = 'Скопировано';
+                    setTimeout(function () { btn.textContent = old; }, 1500);
+                });
+            });
+        });
+    </script>
+</div>
+</html>

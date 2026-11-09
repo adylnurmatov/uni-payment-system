@@ -114,6 +114,11 @@
         </dependency>
         <dependency>
             <groupId>kg.alatoo.payment</groupId>
+            <artifactId>admin-web-adapter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.alatoo.payment</groupId>
             <artifactId>admin-treasury-api-adapter</artifactId>
             <version>${project.version}</version>
         </dependency>
