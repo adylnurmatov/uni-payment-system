@@ -34,8 +34,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @UseCase
 public class CreatePaymentUseCase implements CreatePaymentPort {
-    private static final int MAX_IDEMPOTENCY_KEY_LENGTH = 255;
-
     private final PaymentRepositoryPort paymentRepository;
     private final PaymentTransitions transitions;
     private final ClientRepositoryPort clientRepository;
@@ -60,7 +58,7 @@ public class CreatePaymentUseCase implements CreatePaymentPort {
     @Override
     public Payment execute(CreatePaymentCommand command) {
         Merchant merchant = command.merchant();
-        String idempotencyKey = requireIdempotencyKey(command.idempotencyKey());
+        String idempotencyKey = IdempotencyKeys.require(command.idempotencyKey());
         String clientExternalId = requireClientId(command.clientExternalId());
         BigDecimal amount = AmountValidator.requireValid(command.amount());
         String requestHash = Hashing.sha256Hex(clientExternalId + "|" + amount.toPlainString());
@@ -158,17 +156,6 @@ public class CreatePaymentUseCase implements CreatePaymentPort {
             throw new PaymentFailedException(existing.failureCode(), existing.failureMessage(), existing.id());
         }
         return existing;
-    }
-
-    private static String requireIdempotencyKey(String key) {
-        if (key == null || key.isBlank()) {
-            throw new DomainException(ErrorCode.VALIDATION_ERROR, "Idempotency-Key header is required");
-        }
-        if (key.length() > MAX_IDEMPOTENCY_KEY_LENGTH) {
-            throw new DomainException(ErrorCode.VALIDATION_ERROR,
-                    "Idempotency-Key must be at most " + MAX_IDEMPOTENCY_KEY_LENGTH + " characters");
-        }
-        return key.trim();
     }
 
     private static String requireClientId(String clientId) {

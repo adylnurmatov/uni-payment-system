@@ -39,6 +39,11 @@
         </dependency>
         <dependency>
             <groupId>kg.alatoo.payment</groupId>
+            <artifactId>refund-repository-port</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.alatoo.payment</groupId>
             <artifactId>client-data-port</artifactId>
             <version>${project.version}</version>
         </dependency>

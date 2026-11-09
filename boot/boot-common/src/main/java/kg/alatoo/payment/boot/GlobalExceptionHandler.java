@@ -3,6 +3,7 @@ package kg.alatoo.payment.boot;
 import kg.alatoo.payment.exceptions.DomainException;
 import kg.alatoo.payment.exceptions.ErrorCode;
 import kg.alatoo.payment.exceptions.PaymentFailedException;
+import kg.alatoo.payment.exceptions.RefundFailedException;
 import kg.alatoo.payment.rest.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -31,7 +32,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PaymentFailedException.class)
     public ResponseEntity<ErrorResponse> handlePaymentFailed(PaymentFailedException e) {
         return ResponseEntity.status(httpStatus(e.getCode()))
-                .body(new ErrorResponse(e.getCode().name(), e.getMessage(), e.getPaymentId(), "FAILED", null));
+                .body(new ErrorResponse(e.getCode().name(), e.getMessage(), e.getPaymentId(), null, "FAILED", null));
+    }
+
+    @ExceptionHandler(RefundFailedException.class)
+    public ResponseEntity<ErrorResponse> handleRefundFailed(RefundFailedException e) {
+        return ResponseEntity.status(httpStatus(e.getCode()))
+                .body(new ErrorResponse(e.getCode().name(), e.getMessage(), e.getPaymentId(), e.getRefundId(),
+                        "FAILED", null));
     }
 
     @ExceptionHandler(DomainException.class)
@@ -49,7 +57,8 @@ public class GlobalExceptionHandler {
                 .map(f -> new ErrorResponse.FieldError(f.getField(), f.getDefaultMessage()))
                 .toList();
         return ResponseEntity.badRequest()
-                .body(new ErrorResponse(ErrorCode.VALIDATION_ERROR.name(), "Request validation failed", null, null, details));
+                .body(new ErrorResponse(ErrorCode.VALIDATION_ERROR.name(), "Request validation failed",
+                        null, null, null, details));
     }
 
     @ExceptionHandler({MissingRequestHeaderException.class, MissingServletRequestParameterException.class,

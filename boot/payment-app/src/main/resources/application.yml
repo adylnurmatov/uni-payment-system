@@ -43,6 +43,16 @@ merchant:
   # Сколько ETH перевести из казны новому мерчанту на комиссии за возвраты
   initial-funding: 0.01
 
+# Планировщик подтверждений транзакций
+confirmation:
+  scheduler:
+    enabled: true
+  initial-delay-ms: 10000
+  # Не чаще раза в 15 секунд: публичный RPC может ограничивать частоту запросов
+  poll-interval-ms: 15000
+  # Нет receipt дольше этого времени → FAILED с CONFIRMATION_TIMEOUT
+  timeout: ${CONFIRMATION_TIMEOUT:10m}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

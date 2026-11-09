@@ -20,6 +20,7 @@
         <module>merchant-repository-adapter</module>
         <module>payment-repository-adapter</module>
         <module>treasury-transfer-repository-adapter</module>
+        <module>refund-repository-adapter</module>
         <module>fake-blockchain-adapter</module>
         <module>aes-cipher-adapter</module>
         <module>abc-http-adapter</module>
@@ -31,5 +32,6 @@
         <module>admin-treasury-api-adapter</module>
         <module>admin-client-api-adapter</module>
         <module>admin-merchant-api-adapter</module>
+        <module>confirmation-scheduler-adapter</module>
     </modules>
 </project>

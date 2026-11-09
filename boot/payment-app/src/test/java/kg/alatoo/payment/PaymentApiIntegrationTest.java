@@ -32,7 +32,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "wallet.encryption-key=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         "admin.password=test-admin",
-        "abc.base-url=http://localhost:${local.server.port}/mock-abc"
+        "abc.base-url=http://localhost:${local.server.port}/mock-abc",
+        // транзакции «попадают в блок» сразу, а подтверждения тест запускает сам, без планировщика
+        "fake-blockchain.confirmation-delay=0s",
+        "confirmation.scheduler.enabled=false"
 })
 class PaymentApiIntegrationTest {
 
@@ -42,6 +45,9 @@ class PaymentApiIntegrationTest {
 
     @Autowired
     private TestRestTemplate rest;
+
+    @Autowired
+    private ConfirmTransactionsPort confirmTransactions;
 
     private String apiKey;
     private String clientId;
@@ -107,6 +113,39 @@ class PaymentApiIntegrationTest {
     }
 
     @Test
+    void fullCyclePaymentConfirmationAndRefunds() {
+        String paymentId = pay(clientId, "0.1", "key-1").getBody().get("paymentId").asText();
+        String refundsUrl = "/api/v1/payments/" + paymentId + "/refunds";
+
+        // Пока платёж PENDING, вернуть нельзя
+        ResponseEntity<JsonNode> tooEarly = refund(refundsUrl, Map.of("amount", "0.01"), "r-0");
+        assertThat(tooEarly.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(tooEarly.getBody().get("code").asText()).isEqualTo("INVALID_STATE");
+
+        confirmTransactions.execute();
+        assertThat(merchantGet("/api/v1/payments/" + paymentId, apiKey).getBody().get("status").asText())
+                .isEqualTo("CONFIRMED");
+
+        ResponseEntity<JsonNode> partial = refund(refundsUrl, Map.of("amount", "0.04"), "r-1");
+        assertThat(partial.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(partial.getBody().get("status").asText()).isEqualTo("PENDING");
+
+        ResponseEntity<JsonNode> exceeds = refund(refundsUrl, Map.of("amount", "0.07"), "r-2");
+        assertThat(exceeds.getBody().get("code").asText()).isEqualTo("REFUND_EXCEEDS_PAYMENT");
+
+        ResponseEntity<JsonNode> remaining = refund(refundsUrl, null, "r-3");
+        assertThat(remaining.getBody().get("amount").asText()).isEqualTo("0.06");
+
+        confirmTransactions.execute();
+
+        assertThat(merchantGet("/api/v1/payments/" + paymentId, apiKey).getBody().get("status").asText())
+                .isEqualTo("REFUNDED");
+        JsonNode refunds = merchantGet(refundsUrl, apiKey).getBody();
+        assertThat(refunds).hasSize(2);
+        assertThat(refunds.findValuesAsText("status")).containsOnly("COMPLETED");
+    }
+
+    @Test
     void invalidApiKeyIsUnauthorized() {
         ResponseEntity<JsonNode> response = merchantGet("/api/v1/payments", "wrong");
 
@@ -127,6 +166,13 @@ class PaymentApiIntegrationTest {
         headers.set("Idempotency-Key", idempotencyKey);
         return rest.exchange("/api/v1/payments", HttpMethod.POST,
                 new HttpEntity<>(Map.of("clientId", client, "amount", amount), headers), JsonNode.class);
+    }
+
+    private ResponseEntity<JsonNode> refund(String url, Object body, String idempotencyKey) {
+        HttpHeaders headers = jsonHeaders();
+        headers.set("X-Api-Key", apiKey);
+        headers.set("Idempotency-Key", idempotencyKey);
+        return rest.exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers), JsonNode.class);
     }
 
     private ResponseEntity<JsonNode> merchantGet(String url, String key) {

@@ -34,6 +34,16 @@
         </dependency>
         <dependency>
             <groupId>kg.alatoo.payment</groupId>
+            <artifactId>refund-payment-use-case</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.alatoo.payment</groupId>
+            <artifactId>list-refunds-use-case</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.alatoo.payment</groupId>
             <artifactId>blockchain-gateway-port</artifactId>
             <version>${project.version}</version>
         </dependency>

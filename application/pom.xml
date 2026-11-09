@@ -24,6 +24,7 @@
         <module>merchant-repository-port</module>
         <module>payment-repository-port</module>
         <module>treasury-transfer-repository-port</module>
+        <module>refund-repository-port</module>
         <module>wallet-common</module>
         <module>treasury-common</module>
         <module>payment-common</module>
@@ -38,5 +39,8 @@
         <module>create-payment-use-case</module>
         <module>get-payment-use-case</module>
         <module>list-payments-use-case</module>
+        <module>refund-payment-use-case</module>
+        <module>list-refunds-use-case</module>
+        <module>confirm-transactions-use-case</module>
     </modules>
 </project>
