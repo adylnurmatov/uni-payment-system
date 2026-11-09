@@ -18,8 +18,15 @@ public interface BlockchainGateway {
     /** Баланс адреса в ETH. */
     BigDecimal getBalance(String address);
 
-    /** Оценка комиссии сети за простой перевод ETH (с запасом). */
-    BigDecimal estimateTransferFee();
+    /**
+     * Оценка комиссии сети за перевод ETH (с запасом) — максимум, который может быть списан за газ.
+     * Зависит от перевода: например, перевод на ещё не существующий адрес дороже (создаётся аккаунт).
+     *
+     * @param fromAddress адрес отправителя
+     * @param toAddress   адрес получателя; null — «новый, ещё не существующий адрес»
+     * @param amount      сумма перевода в ETH
+     */
+    BigDecimal estimateTransferFee(String fromAddress, String toAddress, BigDecimal amount);
 
     /**
      * Отправить перевод и НЕ ждать блока.

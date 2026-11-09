@@ -32,10 +32,13 @@ public class TreasuryFundingService {
         this.clock = clock;
     }
 
-    /** Предварительная проверка: хватит ли в казне на перевод amount (используется до создания мерчанта). */
+    /**
+     * Предварительная проверка: хватит ли в казне на перевод amount на новый кошелёк
+     * (используется до создания мерчанта, когда адреса получателя ещё нет).
+     */
     public void ensureCanFund(BigDecimal amount) {
         Wallet treasury = walletService.getTreasury();
-        checkTreasuryBalance(treasury, AmountValidator.requireValid(amount));
+        checkTreasuryBalance(treasury, null, AmountValidator.requireValid(amount));
     }
 
     /** Перевести amount ETH из казны на кошелёк target. Транзакция уходит со статусом PENDING. */
@@ -44,7 +47,7 @@ public class TreasuryFundingService {
         Wallet treasury = walletService.getTreasury();
 
         return walletService.withSendLock(treasury, () -> {
-            checkTreasuryBalance(treasury, validAmount);
+            checkTreasuryBalance(treasury, target.address(), validAmount);
             String txHash = walletService.send(treasury, target.address(), validAmount);
             TreasuryTransfer transfer = new TreasuryTransfer(
                     V7UUIDGenerator.generate(), target.id(), validAmount, txHash,
@@ -56,8 +59,8 @@ public class TreasuryFundingService {
         });
     }
 
-    private void checkTreasuryBalance(Wallet treasury, BigDecimal amount) {
-        BigDecimal fee = walletService.estimateTransferFee();
+    private void checkTreasuryBalance(Wallet treasury, String toAddress, BigDecimal amount) {
+        BigDecimal fee = walletService.estimateTransferFee(treasury, toAddress, amount);
         BigDecimal balance = walletService.getBalance(treasury);
         BigDecimal required = amount.add(fee);
         if (balance.compareTo(required) < 0) {

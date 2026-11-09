@@ -31,14 +31,24 @@ public class Web3jConfiguration {
                 .connectTimeout(properties.getConnectTimeout())
                 .readTimeout(properties.getReadTimeout())
                 .build();
-        log.info("Connecting to Ethereum RPC {} (chain id {})", properties.getRpcUrl(), properties.getChainId());
+        // В URL Infura/Alchemy зашит API-ключ — в лог пишем только хост
+        log.info("Connecting to Ethereum RPC {} (chain id {})", hostOf(properties.getRpcUrl()), properties.getChainId());
         return Web3j.build(new HttpService(properties.getRpcUrl(), httpClient));
     }
 
     @Bean
     public Web3jBlockchainGateway web3jBlockchainGateway(Web3j web3j, Web3jProperties properties) {
         return new Web3jBlockchainGateway(web3j, properties.getChainId(), properties.getGasPriceMultiplier(),
-                properties.getExplorerUrl());
+                properties.getGasLimitMultiplier(), properties.getFallbackGasLimit(), properties.getExplorerUrl());
+    }
+
+    static String hostOf(String url) {
+        try {
+            java.net.URI uri = java.net.URI.create(url.trim());
+            return uri.getScheme() + "://" + uri.getHost();
+        } catch (IllegalArgumentException e) {
+            return "<invalid ETH_RPC_URL>";
+        }
     }
 
     /**

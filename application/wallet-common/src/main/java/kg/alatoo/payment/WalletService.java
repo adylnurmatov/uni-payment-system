@@ -86,8 +86,12 @@ public class WalletService {
         return blockchainGateway.getBalance(wallet.address());
     }
 
-    public BigDecimal estimateTransferFee() {
-        return blockchainGateway.estimateTransferFee();
+    /**
+     * Комиссия за перевод amount с кошелька from на toAddress.
+     * toAddress == null — на новый, ещё не созданный адрес (в Ethereum это дороже: создаётся аккаунт).
+     */
+    public BigDecimal estimateTransferFee(Wallet from, String toAddress, BigDecimal amount) {
+        return blockchainGateway.estimateTransferFee(from.address(), toAddress, amount);
     }
 
     /**

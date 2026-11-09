@@ -99,7 +99,7 @@ public class RefundPaymentUseCase implements RefundPaymentPort {
             log.info("[payment={}] refund {} created: {} ETH", payment.id(), refund.id(), amount.toPlainString());
 
             try {
-                checkMerchantBalance(merchantWallet, amount);
+                checkMerchantBalance(merchantWallet, clientWallet, amount);
                 String txHash = walletService.send(merchantWallet, clientWallet.address(), amount);
                 Refund pending = refundRepository.save(refund.markPending(txHash, clock.instant()));
                 log.info("[payment={}] refund {} -> PENDING (tx {})", payment.id(), refund.id(), txHash);
@@ -123,8 +123,8 @@ public class RefundPaymentUseCase implements RefundPaymentPort {
         return walletService.getWallet(client.walletId());
     }
 
-    private void checkMerchantBalance(Wallet merchantWallet, BigDecimal amount) {
-        BigDecimal fee = walletService.estimateTransferFee();
+    private void checkMerchantBalance(Wallet merchantWallet, Wallet clientWallet, BigDecimal amount) {
+        BigDecimal fee = walletService.estimateTransferFee(merchantWallet, clientWallet.address(), amount);
         BigDecimal balance = walletService.getBalance(merchantWallet);
         BigDecimal required = amount.add(fee);
         if (balance.compareTo(required) < 0) {

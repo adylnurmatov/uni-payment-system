@@ -55,8 +55,9 @@ public class FakeBlockchainGateway implements BlockchainGateway, BlockchainExplo
         return balances.getOrDefault(normalize(address), BigDecimal.ZERO);
     }
 
+    /** В fake-сети комиссия фиксированная и не зависит от получателя. */
     @Override
-    public BigDecimal estimateTransferFee() {
+    public BigDecimal estimateTransferFee(String fromAddress, String toAddress, BigDecimal amount) {
         return transferFee;
     }
 

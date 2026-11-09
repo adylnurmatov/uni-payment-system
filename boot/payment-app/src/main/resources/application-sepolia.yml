@@ -4,6 +4,8 @@ eth:
   rpc-url: ${ETH_RPC_URL:}
   chain-id: ${ETH_CHAIN_ID:11155111}
   gas-price-multiplier: 1.2
+  gas-limit-multiplier: 1.2
+  fallback-gas-limit: 300000
   explorer-url: https://sepolia.etherscan.io
   connect-timeout: 10s
   read-timeout: 30s

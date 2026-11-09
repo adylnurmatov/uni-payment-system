@@ -111,7 +111,7 @@ public class CreatePaymentUseCase implements CreatePaymentPort {
             // 4–5. Проверка баланса и отправка — под блокировкой адреса клиента (nonce + без двойной траты)
             Wallet merchantWallet = walletService.getWallet(merchant.walletId());
             return walletService.withSendLock(clientWallet, () -> {
-                checkBalance(current, clientWallet);
+                checkBalance(current, clientWallet, merchantWallet);
                 String txHash = walletService.send(clientWallet, merchantWallet.address(), current.get().amount());
                 current.set(transitions.moveTo(
                         current.get().withTxHash(txHash).withSubmittedAt(clock.instant()),
@@ -126,9 +126,9 @@ public class CreatePaymentUseCase implements CreatePaymentPort {
         }
     }
 
-    private void checkBalance(AtomicReference<Payment> current, Wallet clientWallet) {
+    private void checkBalance(AtomicReference<Payment> current, Wallet clientWallet, Wallet merchantWallet) {
         Payment payment = current.get();
-        BigDecimal fee = walletService.estimateTransferFee();
+        BigDecimal fee = walletService.estimateTransferFee(clientWallet, merchantWallet.address(), payment.amount());
         BigDecimal balance = walletService.getBalance(clientWallet);
         BigDecimal required = payment.amount().add(fee);
         if (balance.compareTo(required) < 0) {

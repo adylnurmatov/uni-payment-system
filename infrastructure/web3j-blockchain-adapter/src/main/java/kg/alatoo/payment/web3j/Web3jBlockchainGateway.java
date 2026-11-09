@@ -14,6 +14,7 @@ import org.web3j.crypto.TransactionEncoder;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.Response;
+import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.EthSendTransaction;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.utils.Convert;
@@ -24,6 +25,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -50,19 +52,23 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 public class Web3jBlockchainGateway implements BlockchainGateway, BlockchainExplorer {
-    /** Газ на простой перевод ETH — фиксированная величина в Ethereum. */
-    static final BigInteger TRANSFER_GAS_LIMIT = BigInteger.valueOf(21_000);
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final Web3j web3j;
     private final long chainId;
     private final BigDecimal gasPriceMultiplier;
+    private final BigDecimal gasLimitMultiplier;
+    private final BigInteger fallbackGasLimit;
     private final String explorerUrl;
     private final Map<String, BigInteger> nextNonces = new ConcurrentHashMap<>();
 
-    public Web3jBlockchainGateway(Web3j web3j, long chainId, BigDecimal gasPriceMultiplier, String explorerUrl) {
+    public Web3jBlockchainGateway(Web3j web3j, long chainId, BigDecimal gasPriceMultiplier,
+                                  BigDecimal gasLimitMultiplier, BigInteger fallbackGasLimit, String explorerUrl) {
         this.web3j = web3j;
         this.chainId = chainId;
         this.gasPriceMultiplier = gasPriceMultiplier;
+        this.gasLimitMultiplier = gasLimitMultiplier;
+        this.fallbackGasLimit = fallbackGasLimit;
         this.explorerUrl = explorerUrl.endsWith("/") ? explorerUrl.substring(0, explorerUrl.length() - 1) : explorerUrl;
     }
 
@@ -89,10 +95,14 @@ public class Web3jBlockchainGateway implements BlockchainGateway, BlockchainExpl
         return Convert.fromWei(new BigDecimal(wei), Convert.Unit.ETHER);
     }
 
-    /** 21000 газа × текущая цена газа × запас (по умолчанию +20%). */
+    /**
+     * Максимальная комиссия = лимит газа × цена газа (оба с запасом).
+     * Лимит газа спрашиваем у сети (eth_estimateGas), а не берём «классические» 21000: в текущей Sepolia
+     * перевод на ещё не существующий адрес стоит ~207 000 газа (создание аккаунта), а на существующий — 12 000.
+     */
     @Override
-    public BigDecimal estimateTransferFee() {
-        BigInteger feeWei = currentGasPrice().multiply(TRANSFER_GAS_LIMIT);
+    public BigDecimal estimateTransferFee(String fromAddress, String toAddress, BigDecimal amount) {
+        BigInteger feeWei = gasLimitFor(fromAddress, toAddress, toWei(amount)).multiply(currentGasPrice());
         return Convert.fromWei(new BigDecimal(feeWei), Convert.Unit.ETHER);
     }
 
@@ -102,10 +112,11 @@ public class Web3jBlockchainGateway implements BlockchainGateway, BlockchainExpl
         String from = credentials.getAddress().toLowerCase(Locale.ROOT);
         BigInteger valueWei = toWei(amount);
         BigInteger gasPrice = currentGasPrice();
+        BigInteger gasLimit = gasLimitFor(from, toAddress, valueWei);
         BigInteger nonce = nextNonce(from);
 
         RawTransaction transaction = RawTransaction.createEtherTransaction(
-                nonce, gasPrice, TRANSFER_GAS_LIMIT, toAddress, valueWei);
+                nonce, gasPrice, gasLimit, toAddress, valueWei);
         String signed = Numeric.toHexString(TransactionEncoder.signMessage(transaction, chainId, credentials));
 
         EthSendTransaction response;
@@ -121,7 +132,8 @@ public class Web3jBlockchainGateway implements BlockchainGateway, BlockchainExpl
             throw new BlockchainException("Node rejected transaction: " + response.getError().getMessage());
         }
         nextNonces.put(from, nonce.add(BigInteger.ONE));
-        log.info("Transaction {} sent from {} (nonce {}, gasPrice {} wei)", response.getTransactionHash(), from, nonce, gasPrice);
+        log.info("Transaction {} sent from {} (nonce {}, gasLimit {}, gasPrice {} wei)",
+                response.getTransactionHash(), from, nonce, gasLimit, gasPrice);
         return response.getTransactionHash();
     }
 
@@ -155,6 +167,37 @@ public class Web3jBlockchainGateway implements BlockchainGateway, BlockchainExpl
                 "get nonce of " + address).getTransactionCount();
         BigInteger local = nextNonces.get(address);
         return local == null ? fromNode : fromNode.max(local);
+    }
+
+    /**
+     * Лимит газа для перевода = оценка сети × запас (по умолчанию +20%). Неизрасходованный газ не списывается,
+     * запас нужен, чтобы транзакция не упала по out-of-gas.
+     * Для оценки достаточно 1 wei: цена газа зависит от того, есть ли перевод (value &gt; 0) и существует ли получатель,
+     * но не от размера суммы. Так оценка работает, даже если у отправителя пока не хватает денег на саму сумму.
+     */
+    private BigInteger gasLimitFor(String from, String to, BigInteger valueWei) {
+        String target = to != null ? to : randomNewAddress();
+        BigInteger probeValue = valueWei.signum() > 0 ? BigInteger.ONE : BigInteger.ZERO;
+        Transaction probe = Transaction.createEtherTransaction(from, null, null, null, target, probeValue);
+        BigInteger estimate;
+        try {
+            estimate = call(() -> web3j.ethEstimateGas(probe).send(), "estimate gas").getAmountUsed();
+        } catch (BlockchainException e) {
+            if (String.valueOf(e.getMessage()).toLowerCase(Locale.ROOT).contains("insufficient funds")) {
+                // У отправителя совсем нет денег — оценить нельзя; берём консервативный лимит,
+                // проверка баланса дальше всё равно вернёт понятный INSUFFICIENT_FUNDS
+                return fallbackGasLimit;
+            }
+            throw e;
+        }
+        return new BigDecimal(estimate).multiply(gasLimitMultiplier).setScale(0, RoundingMode.CEILING).toBigInteger();
+    }
+
+    /** Случайный адрес, которого точно нет в сети: так оценивается перевод на ещё не созданный кошелёк. */
+    private static String randomNewAddress() {
+        byte[] bytes = new byte[20];
+        RANDOM.nextBytes(bytes);
+        return Numeric.toHexString(bytes);
     }
 
     private BigInteger currentGasPrice() {
