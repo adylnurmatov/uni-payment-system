@@ -11,9 +11,8 @@ COPY application/ application/
 COPY infrastructure/ infrastructure/
 COPY boot/ boot/
 
-# Кэш ~/.m2 между сборками (BuildKit): зависимости не скачиваются заново при каждом изменении кода
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -q -DskipTests package
+# Без BuildKit cache mount: Railway принимает cache mount только в своём формате id
+RUN mvn -B -q -DskipTests package
 
 # ---------- 2. Запуск ----------
 FROM eclipse-temurin:21-jre

@@ -16,6 +16,7 @@
 - [Запуск в Sepolia](#запуск-в-sepolia)
 - [Запуск в Docker](#запуск-в-docker)
 - [Деплой на сервер (DigitalOcean / AWS EC2)](#деплой-на-сервер-digitalocean--aws-ec2)
+- [Деплой на Railway (без своего сервера)](#деплой-на-railway-без-своего-сервера)
 - [Примеры curl](#примеры-curl)
 - [Переменные окружения](#переменные-окружения)
 - [Тесты](#тесты)
@@ -152,6 +153,43 @@ docker compose logs -f app       # ждать "Started PaymentApplication" и "T
 > Сервис отдаётся по HTTP. Для учебного демо этого достаточно, но пароль администратора и API-ключи идут открытым текстом.
 > Для настоящего использования поставьте перед приложением reverse-proxy с TLS (например, Caddy + домен).
 
+## Деплой на Railway (без своего сервера)
+
+[Railway](https://railway.com) собирает образ из нашего `Dockerfile` (настройки — в `railway.json`), даёт PostgreSQL
+и HTTPS-адрес. Приложение слушает порт из переменной `PORT`, которую задаёт Railway.
+
+### 1. Проект и база
+1. Войти на railway.com через GitHub → **New Project** → **Deploy PostgreSQL**.
+2. В том же проекте: **Create** → **GitHub Repo** → `uni-payment-system`. Первый деплой упадёт без переменных — это нормально.
+
+### 2. Перенос базы с пополненной казной (до первого успешного запуска приложения)
+В сервисе Postgres → **Variables** скопировать `DATABASE_PUBLIC_URL` и на локальном компьютере выполнить:
+```bash
+scripts/backup-db.sh
+scripts/restore-db-remote.sh backups/payments-XXXX.sql.gz '<DATABASE_PUBLIC_URL>'
+docker compose down        # локальный экземпляр больше не запускать: конфликт nonce
+```
+
+### 3. Переменные приложения
+Сервис приложения → **Variables** → **Raw Editor** (`${{Postgres.…}}` — ссылки Railway на переменные базы):
+```
+SPRING_PROFILES_ACTIVE=sepolia
+DB_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+DB_USER=${{Postgres.PGUSER}}
+DB_PASSWORD=${{Postgres.PGPASSWORD}}
+WALLET_ENCRYPTION_KEY=<тот же, что в локальном .env>
+ADMIN_PASSWORD=<новый пароль>
+ETH_RPC_URL=<Alchemy URL из .env>
+ETH_CHAIN_ID=11155111
+JAVA_TOOL_OPTIONS=-Xmx384m
+```
+`JAVA_TOOL_OPTIONS` ограничивает память JVM, чтобы не тратить кредиты.
+
+### 4. Адрес и запуск
+**Settings** → **Networking** → **Generate Domain**. После деплоя в логах должны появиться `Started PaymentApplication`
+и `Treasury wallet: 0x…` (тот же адрес казны, что был локально). Открыть `https://<домен>.up.railway.app/admin`
+и `/swagger-ui.html`. Каждый `git push` в `main` запускает новый деплой.
+
 ## Примеры curl
 
 ```bash
@@ -202,6 +240,7 @@ Mock «сервиса ABC» (`/mock-abc/clients/{externalId}`): `ext-blocked` �
 | `ABC_BASE_URL` | адрес «сервиса ABC» (по умолчанию mock в этом же приложении) |
 | `MERCHANT_INITIAL_FUNDING` | ETH новому мерчанту на комиссии (sepolia: `0.005`) |
 | `CONFIRMATION_TIMEOUT` | через сколько неподтверждённая транзакция считается FAILED (`10m`) |
+| `PORT` / `SERVER_PORT` | порт приложения внутри контейнера (`8080`; `PORT` задают PaaS) |
 | `APP_PORT`, `POSTGRES_HOST_PORT` | порты на хосте для Docker (`8080`, `5433`) |
 
 ## Тесты
