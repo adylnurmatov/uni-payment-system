@@ -26,6 +26,9 @@ spring:
 server:
   # PORT задают PaaS (Railway, Render), SERVER_PORT — вручную
   port: ${PORT:${SERVER_PORT:8080}}
+  # За HTTPS-прокси (Railway, nginx): схема и хост берутся из X-Forwarded-*,
+  # иначе Swagger и редиректы логина получают http:// вместо https://
+  forward-headers-strategy: framework
 
 # Мастер-ключ шифрования приватных ключей (base64, 32 байта): openssl rand -base64 32
 wallet:
